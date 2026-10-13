@@ -21,11 +21,37 @@ This can be changed in the configuration file (more info below)
 pip install git+https://github.com/brkwrk/AIleaderboard.git
 ```
 
+<details>
+<summary>If you are a developer, read this.</summary>
+
+After cloning the repository, make sure you have uv installed and do uv
+sync to install all dependencies.
+
+```console
+python -m pip install uv
+python -m uv sync
+```
+
+You may want to use a virtual environment for this, and if so don't
+forget to activate it!
+</details>
+
+
+## Setup
+Create a file named `.env` and put in your openrouter key.
+```
+OPENROUTER_KEY=sk-or-v1-bmV2ZXIgZ29ubmEgZ2l2ZSB5b3UgdXAsIG5ldmVyIGdvbm5hIGxldCB5b3UgZG93
+```
+(don't worry this isn't a real key of course)
+
+
 ## Run
 ```console
 character_sim_server
 ```
-Run with `--help` to see full optional arguments list.
+Run with `--help` to see full optional arguments list. `--local` in
+particular is probably advised unless you want random people using your
+openrouter tokens.
 
 
 ## Usage
@@ -34,22 +60,20 @@ as the server starts up.
 
 
 ## Configuration
-The main configuration file is saved either in
-`$XDG_CONFIG_HOME/character_simulator_webserver/config.toml` or
-`$HOME/.config/character_simulator_webserver/config.toml`, where you can change
-things like what port(s) the webserver is hosted on, hypercorn
-configuration, and enabling SSL support!
+The main configuration file is saved in a folder controlled by
+platformdirs, but it should be your system's application configuration
+folder. The program will print it out on startup, so you can find
+exactly where from there. In the config file you can change things like
+what port(s) the webserver is hosted on, hypercorn configuration, and
+enabling SSL support!
 
-Create the default configuration file by running
+Create/overwrite the default configuration file by running
 ```console
 character_sim_server --create-default-config
 ```
 
-Important: When you do this program, the configuration file will be
-saved in `$XDG_CONFIG_HOME/character_simulator_webserver` (`~/.config` if
-$XDG_CONFIG_HOME not set) and the program will create these files if
-they do not exist.
-THIS CAN OVERWRITE EXISTING CONFIGURATION FILES!
+Important: When you run this command, the new configuration can
+overwrite existing configuration files!
 
 
 ## Enabling SSL Support
