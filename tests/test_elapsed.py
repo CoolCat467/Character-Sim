@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from leaderboard.elapsed import (
+from character_sim.elapsed import (
     combine_end,
     get_elapsed,
     get_time_of_day,

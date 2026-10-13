@@ -1,4 +1,4 @@
-"""Leaderboard Server.
+"""Character Simulation Server.
 
 Copyright (C) 2026  CoolCat467
 
@@ -20,7 +20,7 @@ from __future__ import annotations
 
 __license__ = "GNU General Public License Version 3"
 
-from leaderboard.server import (
+from character_sim.server import (
     __author__ as __author__,
     __title__ as __title__,
     __version__ as __version__,
@@ -29,6 +29,6 @@ from leaderboard.server import (
 
 if __name__ == "__main__":
     print(
-        f"{__title__} v{__version__}  Copyright (C) 2022-2024  {__author__}\n",
+        f"{__title__} v{__version__}  Copyright (C) 2022-2026  {__author__}\n",
     )
     run()

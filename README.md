@@ -1,5 +1,5 @@
-# Leaderboard-Server
-Simple leaderboard webserver.
+# Character-Sim
+Character Simulator Web Server - Writing tool website to suggest how characters act
 
 [![Tests](https://github.com/brkwrk/AIleaderboard/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/brkwrk/AIleaderboard/actions/workflows/ci.yml)
 <!-- BADGIE TIME -->
@@ -9,11 +9,9 @@ Simple leaderboard webserver.
 
 <!-- END BADGIE TIME -->
 
-This is basically a website to run a simple leaderboard where you can
-create a new leaderboard, view a exiting leaderboard, create a new team
-in a leaderboard, start the timer for the leaderboard, mark a selected
-team as completed, and end the timer to mark all remaining teams as did
-not finish.
+This is a website to interface with a large language model, intended to
+be a writing assistant tool to simulate how characters would act within
+a given environment.
 
 On default, the web server is hosted on port `3004`.
 This can be changed in the configuration file (more info below)
@@ -25,7 +23,7 @@ pip install git+https://github.com/brkwrk/AIleaderboard.git
 
 ## Run
 ```console
-leaderboard_server
+character_sim_server
 ```
 Run with `--help` to see full optional arguments list.
 
@@ -37,18 +35,18 @@ as the server starts up.
 
 ## Configuration
 The main configuration file is saved either in
-`$XDG_CONFIG_HOME/leaderboard_webserver/config.toml` or
-`$HOME/.config/leaderboard_webserver/config.toml`, where you can change
+`$XDG_CONFIG_HOME/character_simulator_webserver/config.toml` or
+`$HOME/.config/character_simulator_webserver/config.toml`, where you can change
 things like what port(s) the webserver is hosted on, hypercorn
 configuration, and enabling SSL support!
 
 Create the default configuration file by running
 ```console
-leaderboard_server --create-default-config
+character_sim_server --create-default-config
 ```
 
 Important: When you do this program, the configuration file will be
-saved in `$XDG_CONFIG_HOME/leaderboard_webserver` (`~/.config` if
+saved in `$XDG_CONFIG_HOME/character_simulator_webserver` (`~/.config` if
 $XDG_CONFIG_HOME not set) and the program will create these files if
 they do not exist.
 THIS CAN OVERWRITE EXISTING CONFIGURATION FILES!

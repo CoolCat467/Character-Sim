@@ -1,8 +1,8 @@
 #!/bin/bash
 # -*- coding: utf-8 -*-
-# Leaderboard Web Server Start
+# Character Simulator Web Server Start
 
 while true
 do
-    leaderboard_server
+    character_sim_server
 done

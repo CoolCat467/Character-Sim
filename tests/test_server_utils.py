@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from werkzeug.exceptions import Forbidden, NotFound
 
-from leaderboard.server_utils import (
+from character_sim.server_utils import (
     find_ip,
     get_exception_page,
     pretty_exception,
@@ -21,7 +21,7 @@ from leaderboard.server_utils import (
 async def test_send_error_basic() -> None:
     """Test send_error with basic parameters."""
     with patch(
-        "leaderboard.server_utils.stream_template",
+        "character_sim.server_utils.stream_template",
         new_callable=AsyncMock,
     ) as mock_stream:
         mock_stream.return_value = "error page content"
@@ -44,7 +44,7 @@ async def test_send_error_basic() -> None:
 async def test_send_error_with_return_link() -> None:
     """Test send_error with return link."""
     with patch(
-        "leaderboard.server_utils.stream_template",
+        "character_sim.server_utils.stream_template",
         new_callable=AsyncMock,
     ) as mock_stream:
         mock_stream.return_value = "error page with link"
@@ -68,7 +68,7 @@ async def test_send_error_with_return_link() -> None:
 async def test_get_exception_page_basic() -> None:
     """Test get_exception_page returns correct structure."""
     with patch(
-        "leaderboard.server_utils.send_error",
+        "character_sim.server_utils.send_error",
         new_callable=AsyncMock,
     ) as mock_send:
         mock_send.return_value = "error content"
@@ -92,7 +92,7 @@ async def test_get_exception_page_basic() -> None:
 async def test_get_exception_page_with_return_link() -> None:
     """Test get_exception_page with return link."""
     with patch(
-        "leaderboard.server_utils.send_error",
+        "character_sim.server_utils.send_error",
         new_callable=AsyncMock,
     ) as mock_send:
         mock_send.return_value = "error content"
@@ -118,7 +118,7 @@ async def test_get_exception_page_various_codes() -> None:
     codes = [400, 401, 403, 404, 500, 502, 503]
 
     with patch(
-        "leaderboard.server_utils.send_error",
+        "character_sim.server_utils.send_error",
         new_callable=AsyncMock,
     ) as mock_send:
         mock_send.return_value = "error"
@@ -241,7 +241,7 @@ async def test_pretty_exception_catches_generic_exception() -> None:
         raise ValueError("test error")
 
     with patch(
-        "leaderboard.server_utils.get_exception_page",
+        "character_sim.server_utils.get_exception_page",
         new_callable=AsyncMock,
     ) as mock_page:
         mock_page.return_value = ("error page", 500)
@@ -264,7 +264,7 @@ async def test_pretty_exception_catches_http_exception() -> None:
         raise NotFound("Resource not found")
 
     with patch(
-        "leaderboard.server_utils.get_exception_page",
+        "character_sim.server_utils.get_exception_page",
         new_callable=AsyncMock,
     ) as mock_page:
         mock_page.return_value = ("error page", 404)
@@ -288,7 +288,7 @@ async def test_pretty_exception_catches_forbidden() -> None:
         raise Forbidden("Access denied")
 
     with patch(
-        "leaderboard.server_utils.get_exception_page",
+        "character_sim.server_utils.get_exception_page",
         new_callable=AsyncMock,
     ) as mock_page:
         mock_page.return_value = ("error page", 403)
@@ -308,7 +308,7 @@ async def test_pretty_exception_default_error_message() -> None:
         raise RuntimeError("something broke")
 
     with patch(
-        "leaderboard.server_utils.get_exception_page",
+        "character_sim.server_utils.get_exception_page",
         new_callable=AsyncMock,
     ) as mock_page:
         mock_page.return_value = ("error page", 500)
@@ -332,7 +332,7 @@ async def test_pretty_exception_prints_traceback(
         raise ValueError("test error")
 
     with patch(
-        "leaderboard.server_utils.get_exception_page",
+        "character_sim.server_utils.get_exception_page",
         new_callable=AsyncMock,
     ) as mock_page:
         mock_page.return_value = ("error page", 500)
@@ -373,7 +373,9 @@ def test_find_ip_returns_valid_ipv4() -> None:
 
 def test_find_ip_connects_to_test_networks() -> None:
     """Test find_ip attempts to connect to IANA test networks."""
-    with patch("leaderboard.server_utils.socket.socket") as mock_socket_class:
+    with patch(
+        "character_sim.server_utils.socket.socket",
+    ) as mock_socket_class:
         mock_socket = MagicMock()
         mock_socket_class.return_value = mock_socket
         mock_socket.getsockname.return_value = ("192.168.1.100", 12345)
@@ -389,7 +391,9 @@ def test_find_ip_connects_to_test_networks() -> None:
 
 def test_find_ip_returns_duplicate_ip() -> None:
     """Test find_ip returns IP when duplicate found (optimization)."""
-    with patch("leaderboard.server_utils.socket.socket") as mock_socket_class:
+    with patch(
+        "character_sim.server_utils.socket.socket",
+    ) as mock_socket_class:
         mock_socket = MagicMock()
         mock_socket_class.return_value = mock_socket
         # Return same IP on first two calls
@@ -409,7 +413,9 @@ def test_find_ip_returns_duplicate_ip() -> None:
 
 def test_find_ip_fallback_to_first() -> None:
     """Test find_ip returns first candidate if no duplicates."""
-    with patch("leaderboard.server_utils.socket.socket") as mock_socket_class:
+    with patch(
+        "character_sim.server_utils.socket.socket",
+    ) as mock_socket_class:
         mock_socket = MagicMock()
         mock_socket_class.return_value = mock_socket
         # Return different IPs each time
@@ -428,7 +434,9 @@ def test_find_ip_fallback_to_first() -> None:
 
 def test_find_ip_socket_configuration() -> None:
     """Test find_ip uses correct socket configuration."""
-    with patch("leaderboard.server_utils.socket.socket") as mock_socket_class:
+    with patch(
+        "character_sim.server_utils.socket.socket",
+    ) as mock_socket_class:
         import socket as socket_module
 
         mock_socket = MagicMock()
@@ -448,7 +456,9 @@ def test_find_ip_connects_to_correct_addresses() -> None:
     """Test find_ip tries to connect to IANA test networks."""
     test_ips = ("192.0.2.0", "198.51.100.0")
 
-    with patch("leaderboard.server_utils.socket.socket") as mock_socket_class:
+    with patch(
+        "character_sim.server_utils.socket.socket",
+    ) as mock_socket_class:
         mock_socket = MagicMock()
         mock_socket_class.return_value = mock_socket
         mock_socket.getsockname.return_value = ("10.0.0.1", 12345)

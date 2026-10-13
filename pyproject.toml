@@ -3,12 +3,12 @@ requires = ["setuptools >= 64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "leaderboard"
+name = "character_sim"
 dynamic = ["version"]
 authors = [
   { name="CoolCat467", email="CoolCat467@duck.com" },
 ]
-description = "Leaderboard Web Server - Website to create and view leaderboards."
+description = "Character Simulator Web Server - Writing tool website to suggest how characters act."
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
 requires-python = ">=3.10"
@@ -25,19 +25,18 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: 3 :: Only",
-    "Topic :: Multimedia :: Graphics :: Capture :: Scanners",
     "Topic :: Utilities",
     "Operating System :: OS Independent",
     "Framework :: Trio",
     "Typing :: Typed",
 ]
-keywords = ["leaderboard", "server", "frontend"]
+keywords = ["character_sim", "server", "large_languge_model"]
 dependencies = [
-    "hypercorn[trio]~=0.18.0",
-    "quart~=0.20.0",
-    "quart-trio~=0.12.0",
+    "hypercorn[trio]>=0.18.0",
+    "quart>=0.20.0",
+    "quart-trio>=0.12.0",
     "trio>=0.33.0",
-    "Werkzeug~=3.1.5",
+    "Werkzeug>=3.1.5",
     'exceptiongroup >= 1.2.0; python_version < "3.11"',
     'tomli >= 2.0.1; python_version < "3.11"',
     "python-dotenv>=1.2.4",
@@ -47,14 +46,14 @@ dependencies = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "leaderboard.server.__version__"}
+version = {attr = "character_sim.server.__version__"}
 
 [project.urls]
 "Source" = "https://github.com/CoolCat467/Leaderboard-Server"
 "Bug Tracker" = "https://github.com/CoolCat467/Leaderboard-Server/issues"
 
 [project.scripts]
-leaderboard_server = "leaderboard:run"
+character_sim_server = "character_sim:run"
 
 [project.optional-dependencies]
 tests = [
@@ -72,7 +71,7 @@ tools = [
 ]
 
 [tool.setuptools.package-data]
-leaderboard = ["py.typed", "templates/*", "static/*"]
+character_sim = ["py.typed", "templates/*", "static/*"]
 
 [tool.uv]
 package = true
@@ -155,7 +154,7 @@ extend-ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"src/leaderboard/htmlgen.py" = [
+"src/character_sim/htmlgen.py" = [
     "D417",  # Bugged "Missing argument descriptions" even though they are there
 ]
 "tests/*" = [
@@ -165,7 +164,7 @@ extend-ignore = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov-report=term-missing --cov=leaderboard"
+addopts = "--cov-report=term-missing --cov=character_sim"
 testpaths = [
     "tests",
 ]

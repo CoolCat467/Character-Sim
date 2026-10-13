@@ -1,6 +1,6 @@
-import leaderboard
+import character_sim
 
 
 def test_has_run() -> None:
-    assert hasattr(leaderboard, "run")
-    assert callable(leaderboard.run)
+    assert hasattr(character_sim, "run")
+    assert callable(character_sim.run)

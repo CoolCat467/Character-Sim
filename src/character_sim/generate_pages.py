@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Generate pages for the leaderboard web server.
+"""Generate pages for the character simulator web server.
 
 Copyright (C) 2022-2026  CoolCat467
 
@@ -30,7 +30,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
-from leaderboard import htmlgen, server
+from character_sim import htmlgen, server
 
 if TYPE_CHECKING:
     from collections.abc import Callable

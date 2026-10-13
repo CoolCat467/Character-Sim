@@ -1,4 +1,4 @@
-"""Leaderboard Web Server - Simple website to create and view leaderboards.
+"""Character Simulator Web Server - Writing tool website to suggest how characters act.
 
 Copyright (C) 2026  CoolCat467
 
@@ -20,7 +20,7 @@ from __future__ import annotations
 
 __title__ = "Character Simulator Webserver"
 __author__ = "CoolCat467"
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __license__ = "GNU General Public License Version 3"
 
 
@@ -56,9 +56,9 @@ from quart import Response, request
 from quart.templating import stream_template
 from quart_trio import QuartTrio
 
-from leaderboard.elapsed import combine_end
-from leaderboard.llm_request import yield_llm_stream
-from leaderboard.server_utils import (
+from character_sim.elapsed import combine_end
+from character_sim.llm_request import yield_llm_stream
+from character_sim.server_utils import (
     find_ip,
     get_exception_page,
     pretty_exception,
@@ -442,9 +442,9 @@ use_reloader = false
 
 
 def run() -> None:
-    """Run scanner server."""
+    """Run character simulator server."""
     parser = argparse.ArgumentParser(
-        description="Simple website to create and view leaderboards. ",
+        description="Writing tool website to suggest how characters act.",
     )
     parser.add_argument(
         "--version",

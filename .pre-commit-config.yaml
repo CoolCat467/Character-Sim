@@ -51,6 +51,6 @@ repos:
       - id: regenerate-files
         name: regenerate generated files
         language: system
-        entry: python src/leaderboard/generate_pages.py
+        entry: python src/character_sim/generate_pages.py
         pass_filenames: false
-        files: ^src\/leaderboard\/(((server|htmlgen|generate_pages)\.py)|((static|templates)\/.+\.\w+))$
+        files: ^src\/character_sim\/(((server|htmlgen|generate_pages)\.py)|((static|templates)\/.+\.\w+))$
