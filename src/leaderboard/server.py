@@ -28,7 +28,9 @@ import argparse
 import sys
 import traceback
 from collections.abc import (
+    AsyncGenerator,
     AsyncIterator,
+    Coroutine,
     Iterable,
 )
 from dataclasses import dataclass, field
@@ -69,7 +71,6 @@ else:
     import tomllib
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Coroutine
     from contextlib import AbstractAsyncContextManager
 
     from typing_extensions import ParamSpec
