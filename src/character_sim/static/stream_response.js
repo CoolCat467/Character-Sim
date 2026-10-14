@@ -15,7 +15,8 @@ function append_text(textarea, text) {
 
 async function load_content(output, uuid) {
   console.log(`loading character response ${uuid}...`)
-  output.textContent = '';
+  // defaults to placeholder text while LLM responds
+  output.textContent = 'Working...';
   output.scrollIntoView();
 
   const response = await fetch(`/character_response/${uuid}`, {
@@ -27,12 +28,18 @@ async function load_content(output, uuid) {
     return;
   }
 
+  let loading_displayed = true;
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
 
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
+    // remove the loading text before appending LLM response
+    if (loading_displayed) {
+      loading_displayed = false;
+      output.textContent = '';
+    }
     append_text(output, decoder.decode(value, { stream: true }));
   }
 
