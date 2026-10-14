@@ -176,7 +176,7 @@ class AppData(TypedDict):
     """Global shared application data."""
 
     client: httpx.AsyncClient
-    key: str
+    auth_token: str
     request_pool: BackgroundStreamRequestPool[str]
 
 
@@ -188,7 +188,7 @@ app: Final = QuartTrio(  # pylint: disable=invalid-name
 APP_DATA = AppData(
     {
         "client": httpx.AsyncClient(),
-        "key": "fake key",
+        "auth_token": "fake auth token",
         "request_pool": BackgroundStreamRequestPool({}, None),
     },
 )
@@ -217,7 +217,7 @@ def format_prompt(character_card: str, current_situation: str) -> str:
 @trio.as_safe_channel
 async def format_stream(
     stream_ctx: AbstractAsyncContextManager[trio.abc.ReceiveChannel[str]],
-    wordwrap_width: int | None = 79,
+    wordwrap_width: int | float | None = 79,
 ) -> AsyncGenerator[str, None]:
     """Yield a stream of word-wrapped words.
 
@@ -322,11 +322,11 @@ async def root_post() -> (
 
     prompt = format_prompt(character_card, current_situation)
     client = APP_DATA["client"]
-    key = APP_DATA["key"]
+    auth_token = APP_DATA["auth_token"]
 
     request_pool = APP_DATA["request_pool"]
     uuid = await request_pool.new_request(
-        format_stream(yield_llm_stream(prompt, client, key)),
+        format_stream(yield_llm_stream(prompt, client, auth_token)),
     )
 
     if js_disabled:
@@ -579,10 +579,10 @@ def run() -> None:
 
     load_dotenv()
 
-    key = getenv("OPENROUTER_KEY")
-    if key is None:
+    auth_token = getenv("OPENROUTER_KEY")
+    if auth_token is None:
         raise KeyError("`OPENROUTER_KEY` not found in environment")
-    APP_DATA["key"] = key
+    APP_DATA["auth_token"] = auth_token
 
     run_server(
         secure_bind_port=secure_bind_port,

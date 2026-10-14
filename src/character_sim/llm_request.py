@@ -25,6 +25,7 @@ __author__ = "CoolCat467"
 __license__ = "GNU General Public License Version 3"
 
 
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 import httpx2 as httpx
@@ -35,49 +36,103 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
 
-async def perform_llm_request(
-    prompt: str,
+async def perform_openrouter_request(
     client: httpx.AsyncClient,
-    key: str,
-    model: str = "dots-studio/dots-3-note-preview:free",
-) -> dict[str, Any]:
-    """Return JSON decoded response body from LLM provider request."""
-    # send HTTP request to OpenRouter with a given prompt and model
+    auth_token: str,
+    endpoint: str,
+    payload: dict[str, Any] | None = None,
+    timeout: int | None = 50,  # noqa: ASYNC109
+) -> httpx.Response:
+    """Return openrouter request."""
+    headers = {
+        "Authorization": f"Bearer {auth_token}",
+        "Content-Type": "application/json",
+    }
+    if payload is None:
+        payload = {}
     response = await client.post(
-        url="https://openrouter.ai/api/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-        },
-        content=orjson.dumps(
-            {
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-            },
-        ),
-        timeout=50,
+        url=f"https://openrouter.ai/api/v1/{endpoint}",
+        headers=headers,
+        content=orjson.dumps(payload),
+        timeout=timeout,
     )
-
-    # get response as a dictionary
-    try:
-        response_body = orjson.loads(await response.aread())
-    except orjson.JSONDecodeError as decode_exc:
-        # raise decode error from http error
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as http_exc:
-            raise decode_exc from http_exc
-        # if no http error re-raise json decode error
-        raise
-
-    print(f"[{__title__}] {response_body = }")
 
     try:
         response.raise_for_status()
     except httpx.HTTPStatusError as http_exc:
+        try:
+            error_data = orjson.loads(await response.aread())
+        except orjson.JSONDecodeError as decode_exc:
+            # raise decode error from http error
+            raise decode_exc from http_exc
         # if the API returned an error, add error message as a note
-        http_exc.add_note(response_body["error"]["message"])
+        http_exc.add_note(error_data["error"]["message"])
         raise http_exc from None
+
+    return response
+
+
+@asynccontextmanager
+async def perform_openrouter_stream_request(  # type: ignore[misc]
+    client: httpx.AsyncClient,
+    auth_token: str,
+    endpoint: str,
+    payload: dict[str, Any] | None = None,
+    timeout: int | None = 50,  # noqa: ASYNC109
+) -> AsyncGenerator[httpx.Response, None]:
+    """Return openrouter request."""
+    headers = {
+        "Authorization": f"Bearer {auth_token}",
+        "Content-Type": "application/json",
+    }
+    if payload is None:
+        payload = {}
+    payload["stream"] = True
+
+    async with client.stream(
+        "POST",
+        url=f"https://openrouter.ai/api/v1/{endpoint}",
+        headers=headers,
+        content=orjson.dumps(payload),
+        timeout=timeout,
+    ) as response:
+        # check pre-stream errors
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as http_exc:
+            try:
+                error_data = orjson.loads(await response.aread())
+            except orjson.JSONDecodeError as decode_exc:
+                # raise decode error from http error
+                raise decode_exc from http_exc
+            # if the API returned an error, add error message as a note
+            http_exc.add_note(error_data["error"]["message"])
+            raise http_exc from None
+
+        yield response
+
+
+async def perform_chat_completion_request(
+    prompt: str,
+    client: httpx.AsyncClient,
+    auth_token: str,
+    model: str = "dots-studio/dots-3-note-preview:free",
+) -> dict[str, Any]:
+    """Return JSON decoded response body from LLM provider request."""
+    response = await perform_openrouter_request(
+        client,
+        auth_token,
+        endpoint="chat/completions",
+        payload={
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+        },
+    )
+
+    # get response as a dictionary
+    response_body = orjson.loads(await response.aread())
+
+    print(f"[{__title__}] {response_body = }")
 
     assert isinstance(response_body, dict)
     return response_body
@@ -106,7 +161,7 @@ async def get_llm_response(
          found.
 
     """
-    response_body = await perform_llm_request(
+    response_body = await perform_chat_completion_request(
         prompt,
         client,
         key,
@@ -130,40 +185,21 @@ async def get_llm_response(
 async def yield_llm_stream(
     prompt: str,
     client: httpx.AsyncClient,
-    key: str,
+    auth_token: str,
     model: str = "dots-studio/dots-3-note-preview:free",
 ) -> AsyncGenerator[str, None]:
     """Yield a stream of text fragments from LLM provider request."""
-    headers = {
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-    }
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "stream": True,
     }
 
-    async with client.stream(
-        "POST",
-        url="https://openrouter.ai/api/v1/chat/completions",
-        headers=headers,
-        content=orjson.dumps(payload),
-        timeout=50,
+    async with perform_openrouter_stream_request(
+        client,
+        auth_token=auth_token,
+        endpoint="chat/completions",
+        payload=payload,
     ) as response:
-        # check pre-stream errors
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as http_exc:
-            try:
-                error_data = orjson.loads(await response.aread())
-            except orjson.JSONDecodeError as decode_exc:
-                # raise decode error from http error
-                raise decode_exc from http_exc
-            # if the API returned an error, add error message as a note
-            http_exc.add_note(error_data["error"]["message"])
-            raise http_exc from None
-
         async for line in response.aiter_lines():
             # Skip blank lines and SSE comments (for example, keep-alive
             # messages).
