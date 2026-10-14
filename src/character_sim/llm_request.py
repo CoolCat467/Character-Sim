@@ -189,3 +189,23 @@ async def yield_llm_stream(
             content = parsed["choices"][0]["delta"].get("content")
             if content:
                 yield content
+
+
+@trio.as_safe_channel
+async def fake_stream(text: str) -> AsyncGenerator[str, None]:
+    """Yield a fake stream of word fragments from given text.
+
+    Number of characters yielded is determined by a very naive custom
+    determanistic pseudo-random number generator to choose from 1 to 7
+    characters. Do not use for cryptographic purposes.
+    """
+    head = 0
+    seed = 0
+    while head < len(text):
+        seed = ((seed * 7) + 3) % 4096
+        pseudo_random = (seed % 7) + 1
+
+        consume = min(len(text) - head, pseudo_random)
+
+        yield text[head : head + consume]
+        head += consume

@@ -214,6 +214,83 @@ def format_prompt(character_card: str, current_situation: str) -> str:
 """
 
 
+@trio.as_safe_channel
+async def format_stream(
+    stream_ctx: AbstractAsyncContextManager[trio.abc.ReceiveChannel[str]],
+    wordwrap_width: int | None = 79,
+) -> AsyncGenerator[str, None]:
+    """Yield a stream of word-wrapped words.
+
+    Applies both optional word wrap and strips leading whitespace.
+    """
+    if wordwrap_width is None:
+        wordwrap_width = float("inf")
+
+    # should currently be eating whitespace?
+    whitespace_prefix = True
+    line_length = 0
+    # buffer for the word we are currently building
+    word_buffer = ""
+    next_whitespace = ""
+    async with stream_ctx as stream:
+        async for fragment in stream:
+            for char in fragment:
+                if not char.isspace():
+                    # done eating whitespace
+                    whitespace_prefix = False
+                    # add non-whitespace to word buffer
+                    word_buffer += char
+                    continue
+
+                if whitespace_prefix:
+                    # ignore whitespace prefix
+                    continue
+
+                # if adding this word to the line would put the line
+                # length beyond the target line length
+                if (
+                    line_length + len(next_whitespace) + len(word_buffer)
+                    > wordwrap_width
+                ):
+                    next_whitespace = "\n"
+                    # when we update line in else block below, don't
+                    # count the newline char as a part added word length
+                    line_length = -1
+
+                yield next_whitespace
+                yield word_buffer
+
+                if whitespace_prefix := char == "\n":
+                    # newline command -> new paragraph start
+
+                    # walwrus op above to eat any whitespace before the
+                    # next word start in case of additional newline
+                    # starts if original tries to do paragraphs itself.
+
+                    # set line length to -2 so that when else block here
+                    # runs later it makes line data start with word
+                    # length, or else wordwrap will break and think 2
+                    # extra characters need allocated that don't
+                    # actually exist.
+
+                    line_length = -2
+                    char = "\n\n"
+                else:
+                    line_length += len(next_whitespace) + len(word_buffer)
+                word_buffer = ""
+                next_whitespace = char
+
+        # handle remaining word
+        if (
+            line_length + len(next_whitespace) + len(word_buffer)
+            > wordwrap_width
+        ):
+            next_whitespace = "\n"
+        if word_buffer:
+            yield next_whitespace
+            yield word_buffer
+
+
 @app.post("/")
 @pretty_exception
 async def root_post() -> (
@@ -249,7 +326,7 @@ async def root_post() -> (
 
     request_pool = APP_DATA["request_pool"]
     uuid = await request_pool.new_request(
-        yield_llm_stream(prompt, client, key),
+        format_stream(yield_llm_stream(prompt, client, key)),
     )
 
     if js_disabled:
