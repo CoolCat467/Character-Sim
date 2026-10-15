@@ -119,7 +119,7 @@ async def perform_chat_completion_request(
     prompt: str,
     client: httpx.AsyncClient,
     auth_token: str,
-    model: str = "dots-studio/dots-3-note-preview:free",
+    model: str,
 ) -> dict[str, Any]:
     """Return JSON decoded response body from LLM provider request."""
     response = await perform_openrouter_request(
@@ -224,8 +224,8 @@ async def perform_models_request(
 async def get_llm_response(
     prompt: str,
     client: httpx.AsyncClient,
-    key: str,
-    model: str = "dots-studio/dots-3-note-preview:free",
+    auth_token: str,
+    model: str,
 ) -> str:
     """Retrieve a response from an AI model.
 
@@ -247,7 +247,7 @@ async def get_llm_response(
     response_body = await perform_chat_completion_request(
         prompt,
         client,
-        key,
+        auth_token,
         model,
     )
 
@@ -269,7 +269,7 @@ async def yield_llm_stream(
     prompt: str,
     client: httpx.AsyncClient,
     auth_token: str,
-    model: str = "dots-studio/dots-3-note-preview:free",
+    model: str,
 ) -> AsyncGenerator[str, None]:
     """Yield a stream of text fragments from LLM provider request."""
     payload = {

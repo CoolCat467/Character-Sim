@@ -192,6 +192,7 @@ class AppData(TypedDict):
     auth_token: str
     request_pool: BackgroundStreamRequestPool[str]
     models: list[ModelData]
+    default_model: str
 
 
 app: Final = QuartTrio(  # pylint: disable=invalid-name
@@ -202,9 +203,10 @@ app: Final = QuartTrio(  # pylint: disable=invalid-name
 APP_DATA = AppData(
     {
         "client": httpx.AsyncClient(),
-        "auth_token": "fake auth token",
+        "auth_token": "",
         "request_pool": BackgroundStreamRequestPool({}, None),
         "models": [],
+        "default_model": "",
     },
 )
 
@@ -215,6 +217,7 @@ async def root_get() -> AsyncIterator[str]:
     return await stream_template(
         "character_simulator.html.jinja",
         models=APP_DATA["models"],
+        default_model=APP_DATA["default_model"],
     )
 
 
@@ -319,12 +322,19 @@ async def root_post() -> (
     character_card = form.get("character_card", "").strip()
     current_situation = form.get("current_situation", "").strip()
     js_disabled = bool(form.get("js_disabled", ""))
+    model = form.get("model", APP_DATA["default_model"])
 
     errors = []
     if not character_card:
         errors.append("Missing <code>character_card</code> parameter.")
     if not current_situation:
         errors.append("Missing <code>current_situation</code> parameter.")
+    valid_models = [model["id"] for model in APP_DATA["models"]]
+    if model not in valid_models:
+        valid_list = combine_end(map(repr, valid_models), "or")
+        errors.append(
+            f"Invalid <code>model</code> parameter. Must be {valid_list}.",
+        )
     if errors:
         return await get_exception_page(
             400,  # bad request
@@ -335,6 +345,7 @@ async def root_post() -> (
 
     assert character_card
     assert current_situation
+    assert model in valid_models
 
     prompt = format_prompt(character_card, current_situation)
     client = APP_DATA["client"]
@@ -342,7 +353,7 @@ async def root_post() -> (
 
     request_pool = APP_DATA["request_pool"]
     uuid = await request_pool.new_request(
-        format_stream(yield_llm_stream(prompt, client, auth_token)),
+        format_stream(yield_llm_stream(prompt, client, auth_token, model)),
     )
 
     if js_disabled:
@@ -367,6 +378,7 @@ async def root_post() -> (
             current_situation_autofill=current_situation,
             response="".join(fragments),
             models=APP_DATA["models"],
+            default_model=model,
         )
 
     # Javascript will take the uuid and load content from
@@ -377,6 +389,7 @@ async def root_post() -> (
         current_situation_autofill=current_situation,
         response=str(uuid),
         models=APP_DATA["models"],
+        default_model=model,
     )
 
 
@@ -580,6 +593,8 @@ port = 3004
 
 # OpenRouter model request period (measured in days)
 model_request_period_days = 14
+# Default model to have selected from the models dropdown list
+default_model = "dots-studio/dots-3-note-preview:free"
 
 # Port for SSL secured server to run on
 #ssl_port = 443
@@ -654,6 +669,10 @@ def run() -> None:
     hypercorn: dict[str, object] = config.get("hypercorn", {})
     model_request_period_days: int = int(
         config.get("model_request_period_days", 14),
+    )
+    APP_DATA["default_model"] = config.get(
+        "default_model",
+        "dots-studio/dots-3-note-preview:free",
     )
 
     ip_address: str | None = None

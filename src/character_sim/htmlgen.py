@@ -289,7 +289,7 @@ def select_dict(
             and "value" in attributes
             and attributes["value"] == default
         ):
-            attributes["checked"] = "checked"
+            attributes["checked"] = "True"
         lines.append(
             input_field(
                 field_id=f"{submit_name}_{count}",
@@ -388,6 +388,82 @@ def form(
         id_=form_id,
         name=form_id,
         method="post",
+    )
+
+
+def wrap_optgroup(label: str, content: str, disabled: bool = False) -> str:
+    """Return content wrapped in option group with a given group label."""
+    kwargs = {} if not disabled else {"disabled": True}
+    return wrap_tag("optgroup", content, label=label, **kwargs)
+
+
+def option_tag(
+    value: str,
+    label: str | None = None,
+    selected: bool = False,
+    disabled: bool = False,
+) -> str:
+    """Return option tag.
+
+    Value specifies the value to be sent to a server.
+    Label specifies a shorter label for an option.
+    """
+    kwargs: dict[str, str | bool] = {
+        "value": value,
+    }
+    if label is not None:
+        kwargs["label"] = label
+    if selected:
+        kwargs["selected"] = True
+    if disabled:
+        kwargs["disabled"] = True
+    return tag("option", **kwargs)
+
+
+def wrap_select(
+    name: str,
+    label: str,
+    content: str,
+    /,
+    **kwargs: str | int | bool,
+) -> str:
+    """Return a select block with a label.
+
+    id set to given name.
+    kwargs control extra attributes on `select`
+    Select attributes:
+        autofocus (bool):
+            Specifies that the drop-down list should automatically get
+            focus when the page loads
+        disabled (bool):
+            Specifies that a drop-down list should be disabled
+        form (str):
+            Defines which form id the drop-down list belongs to
+        multiple (bool):
+            Specifies that multiple options can be selected at once
+        required (bool):
+            Specifies that the user is required to select a value before
+            submitting the form
+        size (int):
+            Defines the number of visible options in a drop-down list
+    """
+    return "\n".join(
+        (
+            wrap_tag(
+                "label",
+                label,
+                for_=name,
+                block=False,
+            ),
+            wrap_tag(
+                "select",
+                content,
+                id_=name,
+                name=name,
+                block=True,
+                **kwargs,
+            ),
+        ),
     )
 
 
@@ -514,6 +590,24 @@ def jinja_arg_tag(
     return f"<{type_}{args}>"
 
 
+def jinja_wrap_tag_arg(
+    type_: str,
+    jinja_properties: Iterable[str],
+    content: str,
+    /,
+    block: bool = True,
+    **kwargs: TagArg,
+) -> str:
+    """Wrap value in HTML tag.
+
+    If block, indent value
+    """
+    if block and content:
+        content = f"\n{indent(2, content)}\n"
+    start_tag = jinja_arg_tag(type_, jinja_properties, **kwargs)
+    return f"{start_tag}{content}</{type_}>"
+
+
 def jinja_radio_select(
     submit_name: str,
     options_dict_name: str,
@@ -533,7 +627,7 @@ def jinja_radio_select(
     if default is not None:
         jinja_properties = (
             jinja_if_block(
-                {f"value == {default}": 'checked="checked" '},
+                {f"value == {default}": 'checked="True" '},
                 block=False,
             ),
         )
@@ -744,3 +838,54 @@ def jinja_table(
             ),
         )
     return wrap_tag("table", "\n".join(table_contents))
+
+
+def jinja_select_block(
+    name: str,
+    label: str,
+    iterate: str,
+    results: Iterable[str],
+    content: str,
+    option_filter: str | None = None,
+    no_options_content: str | None = None,
+    else_content: str | None = None,
+    **select_kwargs: str | int | bool,
+) -> str:
+    """Return a select block with a label.
+
+    id set to given name.
+    kwargs control extra attributes on `select`
+    Select attributes:
+        autofocus (bool):
+            Specifies that the drop-down list should automatically get
+            focus when the page loads
+        disabled (bool):
+            Specifies that a drop-down list should be disabled
+        form (str):
+            Defines which form id the drop-down list belongs to
+        multiple (bool):
+            Specifies that multiple options can be selected at once
+        required (bool):
+            Specifies that the user is required to select a value before
+            submitting the form
+        size (int):
+            Defines the number of visible options in a drop-down list
+
+    Ends up being something like:
+    for {results} in {iterate} [if {option_filter}]:
+        {content}
+    else: # If no results that matched filter
+        {no_options_content}
+    """
+    return wrap_select(
+        name,
+        label,
+        jinja_for_loop(
+            results,
+            iterate,
+            content,
+            filter_=option_filter,
+            else_content=else_content,
+        ),
+        **select_kwargs,
+    )

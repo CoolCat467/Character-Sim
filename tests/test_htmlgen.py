@@ -235,7 +235,7 @@ def test_select_dict_lots_default() -> None:
             {"cat": "0", "fish": "1", "four": "3"},
             default="0",
         )
-        == """<input type="radio" id="name_here_0" name="name_here" value="0" checked="checked">
+        == """<input type="radio" id="name_here_0" name="name_here" value="0" checked="True">
 <label for="name_here_0">cat</label>
 <br>
 <input type="radio" id="name_here_1" name="name_here" value="1">
@@ -613,7 +613,7 @@ def test_jinja_radio_select_default() -> None:
     assert (
         htmlgen.jinja_radio_select("submits", "option_data", "default text")
         == """{% for display, value in option_data.items() %}
-<input {% if value == default text %}checked="checked" {% endif %}type="radio" id="submits_{{ loop.index0 }}" name="submits" value="{{ value }}">
+<input {% if value == default text %}checked="True" {% endif %}type="radio" id="submits_{{ loop.index0 }}" name="submits" value="{{ value }}">
 <label for="submits_{{ loop.index0 }}">{{ display }}</label>
 <br>
 {% endfor %}"""

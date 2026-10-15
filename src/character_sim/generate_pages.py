@@ -396,11 +396,39 @@ def generate_character_simulator() -> str:
         ),
     )
 
+    model_dropdown = htmlgen.jinja_select_block(
+        "model",
+        "LLM Model:",
+        iterate="models",  # list[ModelData]
+        results=("model",),
+        content=htmlgen.jinja_wrap_tag_arg(
+            "option",
+            (
+                htmlgen.jinja_if_block(
+                    {
+                        "model.id == default_model": 'selected="True" ',
+                    },
+                    block=False,
+                ),
+            ),
+            htmlgen.jinja_expression("model.name"),
+            value=htmlgen.jinja_expression("model.id"),
+            block=False,
+        ),
+        else_content=htmlgen.option_tag(
+            "undefined",
+            "No models are available at this time?",
+            selected=True,
+        ),
+        required=True,
+    )
+
     form_contents = "\n<br>\n".join(  # noqa: FLY002
         (
             character_card_textarea,
             current_situation_textarea,
             no_javascript_element,
+            model_dropdown,
         ),
     )
 
@@ -462,7 +490,7 @@ def generate_character_simulator() -> str:
         "",
         block=False,
         src="/stream_response.js",
-        # defer=True,
+        defer=True,
     )
 
     return template(f"LLM Character Simulator{title_extra}", html, head=head)

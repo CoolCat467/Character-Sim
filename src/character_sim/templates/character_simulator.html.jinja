@@ -1,7 +1,7 @@
 {% extends "base.html.jinja" %}
 {% block title %}LLM Character Simulator{% if response %} Response{% endif %}{% endblock title %}
 {% block head %}
-<script src="/stream_response.js"></script>
+<script src="/stream_response.js" defer="true"></script>
 {% endblock head %}
 {% block body %}
 <div class="box">
@@ -22,6 +22,15 @@
     <noscript>
       <input type="hidden" id="js_disabled" name="js_disabled" value="1">
     </noscript>
+    <br>
+    <label for="model">LLM Model:</label>
+    <select id="model" name="model" required="true">
+      {% for model in models %}
+      <option {% if model.id == default_model %}selected="True" {% endif %}value="{{ model.id }}">{{ model.name }}</option>
+      {% else %}
+      <option value="undefined" label="No models are available at this time?" selected="true">
+      {% endfor %}
+    </select>
     <br>
     <input type="submit" id="simulate_character_submit_button" name="simulate_character_submit_button" value="Simulate">
   </form>
