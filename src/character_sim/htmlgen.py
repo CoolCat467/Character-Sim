@@ -402,22 +402,24 @@ def option_tag(
     label: str | None = None,
     selected: bool = False,
     disabled: bool = False,
+    short_label: str | None = None,
 ) -> str:
     """Return option tag.
 
     Value specifies the value to be sent to a server.
-    Label specifies a shorter label for an option.
+    Short label specifies a shorter label for an option (label tag on
+    option).
     """
     kwargs: dict[str, str | bool] = {
         "value": value,
     }
-    if label is not None:
-        kwargs["label"] = label
     if selected:
         kwargs["selected"] = True
     if disabled:
         kwargs["disabled"] = True
-    return tag("option", **kwargs)
+    if short_label is not None:
+        kwargs["label"] = short_label
+    return wrap_tag("option", label or "", block=False, **kwargs)
 
 
 def wrap_select(

@@ -28,7 +28,7 @@
       {% for model in models %}
       <option {% if model.id == default_model %}selected="true" {% endif %}value="{{ model.id }}">{{ model.name }}</option>
       {% else %}
-      <option value="undefined" label="No models are available at this time?" selected="true">
+      <option value="undefined" selected="true">No models are available at this time?</option>
       {% endfor %}
     </select>
     <br>
