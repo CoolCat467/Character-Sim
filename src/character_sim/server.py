@@ -30,12 +30,15 @@ import traceback
 from collections.abc import (
     AsyncGenerator,
     AsyncIterator,
+    Awaitable,
+    Callable,
     Coroutine,
     Iterable,
 )
 from dataclasses import dataclass, field
 from functools import partial
 from os import getenv, makedirs, path
+from time import time
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -43,10 +46,12 @@ from typing import (
     Generic,
     TypedDict,
     TypeVar,
+    cast,
 )
 from uuid import UUID, uuid4
 
 import httpx2 as httpx
+import orjson
 import platformdirs
 import trio
 from dotenv import load_dotenv
@@ -57,7 +62,11 @@ from quart.templating import stream_template
 from quart_trio import QuartTrio
 
 from character_sim.elapsed import combine_end
-from character_sim.llm_request import yield_llm_stream
+from character_sim.llm_request import (
+    ModelData,
+    perform_models_request,
+    yield_llm_stream,
+)
 from character_sim.server_utils import (
     find_ip,
     get_exception_page,
@@ -85,7 +94,11 @@ CONFIG_PATH: Final = trio.Path(
 DATA_PATH: Final = trio.Path(
     platformdirs.user_data_path(FILE_TITLE, __author__),
 )
+CACHE_PATH: Final = trio.Path(
+    platformdirs.user_cache_path(FILE_TITLE, __author__),
+)
 MAIN_CONFIG: Final = CONFIG_PATH / "config.toml"
+MODELS_CACHE: Final = CACHE_PATH / "models.json"
 
 T = TypeVar("T")
 
@@ -178,6 +191,7 @@ class AppData(TypedDict):
     client: httpx.AsyncClient
     auth_token: str
     request_pool: BackgroundStreamRequestPool[str]
+    models: list[ModelData]
 
 
 app: Final = QuartTrio(  # pylint: disable=invalid-name
@@ -190,6 +204,7 @@ APP_DATA = AppData(
         "client": httpx.AsyncClient(),
         "auth_token": "fake auth token",
         "request_pool": BackgroundStreamRequestPool({}, None),
+        "models": [],
     },
 )
 
@@ -199,6 +214,7 @@ async def root_get() -> AsyncIterator[str]:
     """Handle main page GET request."""
     return await stream_template(
         "character_simulator.html.jinja",
+        models=APP_DATA["models"],
     )
 
 
@@ -350,6 +366,7 @@ async def root_post() -> (
             character_card_autofill=character_card,
             current_situation_autofill=current_situation,
             response="".join(fragments),
+            models=APP_DATA["models"],
         )
 
     # Javascript will take the uuid and load content from
@@ -359,6 +376,7 @@ async def root_post() -> (
         character_card_autofill=character_card,
         current_situation_autofill=current_situation,
         response=str(uuid),
+        models=APP_DATA["models"],
     )
 
 
@@ -383,12 +401,66 @@ async def character_response_get(
     return Response(generate(), content_type="text/plain; charset=utf-8")
 
 
+async def json_file_cache_result(
+    path: trio.Path,
+    period: int,
+    perform_update: Callable[[], Awaitable[T]],
+) -> T:
+    """Return cached result from file path.
+
+    If file does not exist or file content age is beyond given period,
+    calls perform_update and saves the result as json to load later.
+    """
+
+    async def update_cache() -> T:
+        """Update cache contents."""
+        result = await perform_update()
+        await path.write_bytes(
+            orjson.dumps(
+                {
+                    "timestamp": int(time()),
+                    "content": result,
+                },
+                option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE,
+            ),
+        )
+        return result
+
+    if not await path.exists():
+        folder = path.parent
+        if not await folder.exists():
+            await folder.mkdir(parents=True)
+        return await update_cache()
+
+    file_data = orjson.loads(await path.read_bytes())
+    timestamp = file_data.get("timestamp")
+    if not isinstance(timestamp, int):
+        return await update_cache()
+    if int(time()) - timestamp > period:
+        return await update_cache()
+    content = file_data.get("content")
+    if content is None:
+        return await update_cache()
+    return cast("T", content)
+
+
 async def async_run_server(
     serve_partial: partial[Coroutine[Any, Any, None]],
+    model_request_period_days: int,
 ) -> None:
     """Call server partial while managing httpx client."""
     async with httpx.AsyncClient() as client:
         APP_DATA["client"] = client
+
+        auth_token = APP_DATA["auth_token"]
+
+        APP_DATA["models"] = await json_file_cache_result(
+            MODELS_CACHE,
+            model_request_period_days * 24 * 60 * 60,
+            partial(perform_models_request, client, auth_token),
+        )
+        print(f"Loaded info about {len(APP_DATA['models'])} models.")
+
         async with trio.open_nursery() as nursery:
             APP_DATA["request_pool"] = BackgroundStreamRequestPool({}, nursery)
             nursery.start_soon(serve_partial)
@@ -399,6 +471,7 @@ def run_server(
     insecure_bind_port: int | None = None,
     ip_addr: str | None = None,
     hypercorn: dict[str, object] | None = None,
+    model_request_period_days: int = 14,
 ) -> None:
     """Asynchronous Entry Point."""
     if secure_bind_port is None and insecure_bind_port is None:
@@ -483,7 +556,11 @@ def run_server(
 
         print("(CTRL + C to quit)")
 
-        trio.run(async_run_server, partial(serve, app, config_obj))
+        trio.run(
+            async_run_server,
+            partial(serve, app, config_obj),
+            model_request_period_days,
+        )
     except BaseExceptionGroup as exc:
         caught = False
         for ex in exc.exceptions:
@@ -500,6 +577,9 @@ DEFAULT_CONFIG_TOML: Final = """[main]
 # Port server should run on.
 # You might want to consider changing this to 80
 port = 3004
+
+# OpenRouter model request period (measured in days)
+model_request_period_days = 14
 
 # Port for SSL secured server to run on
 #ssl_port = 443
@@ -572,6 +652,9 @@ def run() -> None:
     secure_bind_port = main_section.get("ssl_port", None)
 
     hypercorn: dict[str, object] = config.get("hypercorn", {})
+    model_request_period_days: int = int(
+        config.get("model_request_period_days", 14),
+    )
 
     ip_address: str | None = None
     if args.local:
@@ -589,6 +672,7 @@ def run() -> None:
         insecure_bind_port=insecure_bind_port,
         ip_addr=ip_address,
         hypercorn=hypercorn,
+        model_request_period_days=model_request_period_days,
     )
 
 

@@ -27,6 +27,7 @@ __license__ = "GNU General Public License Version 3"
 
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, TypedDict
+from urllib.parse import urlencode
 
 import httpx2 as httpx
 import orjson
@@ -40,6 +41,7 @@ async def perform_openrouter_request(
     client: httpx.AsyncClient,
     auth_token: str,
     endpoint: str,
+    method: str = "POST",
     payload: dict[str, Any] | None = None,
     timeout: int | None = 50,  # noqa: ASYNC109
 ) -> httpx.Response:
@@ -50,7 +52,8 @@ async def perform_openrouter_request(
     }
     if payload is None:
         payload = {}
-    response = await client.post(
+    response = await client.request(
+        method=method,
         url=f"https://openrouter.ai/api/v1/{endpoint}",
         headers=headers,
         content=orjson.dumps(payload),
@@ -83,7 +86,7 @@ async def perform_openrouter_stream_request(  # type: ignore[misc]
     """Return openrouter stream request."""
     headers = {
         "Authorization": f"Bearer {auth_token}",
-        "Content-Type": "application/json",
+        "Content-Type": "text/event-stream",  # "application/json",
     }
     if payload is None:
         payload = {}
@@ -138,60 +141,77 @@ async def perform_chat_completion_request(
     return response_body
 
 
+class ModelArchitectureData(TypedDict):
+    """Model architecture data entry."""
+
+    input_modalities: list[str]
+    instruct_type: str
+    modality: str
+    output_modalities: str
+    tokenizer: str
+
+
+class ModelPricingData(TypedDict):
+    """Model pricing data entry."""
+
+    completion: str | None
+    image: str | None
+    prompt: str | None
+    request: str | None
+    web_search: str | None
+    internal_reasoning: str | None
+    input_cache_read: str | None
+    input_cache_write: str | None
+    overrides: list[object]
+
+
+class ModelTopProviderData(TypedDict):
+    """Model top provider data entry."""
+
+    context_length: int
+    is_moderated: bool
+    max_completion_tokens: int
+
+
 class ModelData(TypedDict):
     """Model data entry."""
 
-    architecture: dict[str, str | list[str]]
-    ##    "architecture": {
-    ##        "input_modalities": [
-    ##            "text"
-    ##        ],
-    ##        "instruct_type": "chatml",
-    ##        "modality": "text->text",
-    ##        "output_modalities": [
-    ##            "text"
-    ##        ],
-    ##        "tokenizer": "GPT"
-    ##    },
+    architecture: ModelArchitectureData
     canonical_slug: str
     context_length: int
     created: int
-    default_parameters: None
+    default_parameters: list[str] | None
     description: str
     expiration_date: None
     id: str
-    knowledge_cutoff: None
+    knowledge_cutoff: str | None
     links: dict[str, str]
     name: str
     per_request_limits: None
-    pricing: dict[str, str]
-    ##    "pricing": {
-    ##        "completion": "0.00006",
-    ##        "image": "0",
-    ##        "prompt": "0.00003",
-    ##        "request": "0"
-    ##    },
+    pricing: ModelPricingData
     supported_parameters: list[str] | None
     supported_voices: list[str] | None
-    top_provider: dict[str, int | bool]
-
-
-##    "top_provider": {
-##        "context_length": 8192,
-##        "is_moderated": true,
-##        "max_completion_tokens": 4096
-##    }
+    top_provider: ModelTopProviderData
 
 
 async def perform_models_request(
     client: httpx.AsyncClient,
     auth_token: str,
+    output_modalities: str = "text",
+    sort: str = "pricing-low-to-high",
 ) -> list[ModelData]:
     """Return available openrouter model details."""
     response = await perform_openrouter_request(
         client,
         auth_token,
-        "models",
+        endpoint="models?"
+        + urlencode(
+            {
+                "output_modalities": output_modalities,
+                "sort": sort,
+            },
+        ),
+        method="GET",
     )
     data = orjson.loads(await response.aread())["data"]
     assert isinstance(data, list)
