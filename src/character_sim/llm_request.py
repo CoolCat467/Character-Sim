@@ -26,7 +26,7 @@ __license__ = "GNU General Public License Version 3"
 
 
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import httpx2 as httpx
 import orjson
@@ -80,7 +80,7 @@ async def perform_openrouter_stream_request(  # type: ignore[misc]
     payload: dict[str, Any] | None = None,
     timeout: int | None = 50,  # noqa: ASYNC109
 ) -> AsyncGenerator[httpx.Response, None]:
-    """Return openrouter request."""
+    """Return openrouter stream request."""
     headers = {
         "Authorization": f"Bearer {auth_token}",
         "Content-Type": "application/json",
@@ -136,6 +136,69 @@ async def perform_chat_completion_request(
 
     assert isinstance(response_body, dict)
     return response_body
+
+
+class ModelData(TypedDict):
+    """Model data entry."""
+
+    architecture: dict[str, str | list[str]]
+    ##    "architecture": {
+    ##        "input_modalities": [
+    ##            "text"
+    ##        ],
+    ##        "instruct_type": "chatml",
+    ##        "modality": "text->text",
+    ##        "output_modalities": [
+    ##            "text"
+    ##        ],
+    ##        "tokenizer": "GPT"
+    ##    },
+    canonical_slug: str
+    context_length: int
+    created: int
+    default_parameters: None
+    description: str
+    expiration_date: None
+    id: str
+    knowledge_cutoff: None
+    links: dict[str, str]
+    name: str
+    per_request_limits: None
+    pricing: dict[str, str]
+    ##    "pricing": {
+    ##        "completion": "0.00006",
+    ##        "image": "0",
+    ##        "prompt": "0.00003",
+    ##        "request": "0"
+    ##    },
+    supported_parameters: list[str] | None
+    supported_voices: list[str] | None
+    top_provider: dict[str, int | bool]
+
+
+##    "top_provider": {
+##        "context_length": 8192,
+##        "is_moderated": true,
+##        "max_completion_tokens": 4096
+##    }
+
+
+async def perform_models_request(
+    client: httpx.AsyncClient,
+    auth_token: str,
+) -> list[ModelData]:
+    """Return available openrouter model details."""
+    response = await perform_openrouter_request(
+        client,
+        auth_token,
+        "models",
+    )
+    data = orjson.loads(await response.aread())["data"]
+    assert isinstance(data, list)
+    return [
+        ModelData(entry)  # type: ignore[misc]
+        for entry in data
+    ]
 
 
 async def get_llm_response(
