@@ -289,7 +289,7 @@ def select_dict(
             and "value" in attributes
             and attributes["value"] == default
         ):
-            attributes["checked"] = "True"
+            attributes["checked"] = "true"
         lines.append(
             input_field(
                 field_id=f"{submit_name}_{count}",
@@ -627,7 +627,7 @@ def jinja_radio_select(
     if default is not None:
         jinja_properties = (
             jinja_if_block(
-                {f"value == {default}": 'checked="True" '},
+                {f"value == {default}": 'checked="true" '},
                 block=False,
             ),
         )

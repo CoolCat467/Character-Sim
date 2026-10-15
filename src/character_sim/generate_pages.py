@@ -406,7 +406,7 @@ def generate_character_simulator() -> str:
             (
                 htmlgen.jinja_if_block(
                     {
-                        "model.id == default_model": 'selected="True" ',
+                        "model.id == default_model": 'selected="true" ',
                     },
                     block=False,
                 ),

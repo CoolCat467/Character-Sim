@@ -26,7 +26,7 @@
     <label for="model">LLM Model:</label>
     <select id="model" name="model" required="true">
       {% for model in models %}
-      <option {% if model.id == default_model %}selected="True" {% endif %}value="{{ model.id }}">{{ model.name }}</option>
+      <option {% if model.id == default_model %}selected="true" {% endif %}value="{{ model.id }}">{{ model.name }}</option>
       {% else %}
       <option value="undefined" label="No models are available at this time?" selected="true">
       {% endfor %}
