@@ -94,6 +94,12 @@ For my installation, I ended up [installing it with pip](https://pypi.org/projec
 8) Uncomment SSL lines in the webserver configuration file (see section above) and edit as needed for your particular setup.
 
 
+## Contributors
+CoolCat467 - UI/UX design & development, project base
+Silicontent (Luke) - initial API interaction script, presentation
+brkwrk (Brock) - planning & testing, presentation
+
+
 ### Links
 * Source Code - https://github.com/CoolCat467/Character-Sim.git
 * Issues      - https://github.com/CoolCat467/Character-Sim/issues
