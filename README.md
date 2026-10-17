@@ -95,9 +95,9 @@ For my installation, I ended up [installing it with pip](https://pypi.org/projec
 
 
 ## Contributors
-CoolCat467 - UI/UX design & development, project base
-Silicontent (Luke) - initial API interaction script, presentation
-brkwrk (Brock) - planning & testing, presentation
+* CoolCat467 - UI/UX design & development, project base
+* Silicontent (Luke) - initial API interaction script, presentation
+* brkwrk (Brock) - planning & testing, presentation
 
 
 ### Links
