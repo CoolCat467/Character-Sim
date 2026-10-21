@@ -37,7 +37,8 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from functools import partial
-from os import getenv, makedirs, path
+from os import getenv
+from pathlib import Path
 from time import time
 from typing import (
     TYPE_CHECKING,
@@ -498,9 +499,9 @@ def run_server(
     if not hypercorn:
         hypercorn = {}
 
-    ##    logs_path = platformdirs.user_log_path(FILE_TITLE, __author__)
-    ##    if not path.exists(logs_path):
-    ##        makedirs(logs_path)
+    ##    logs_path = Path(platformdirs.user_log_path(FILE_TITLE, __author__))
+    ##    if not logs_path.exists():
+    ##        logs_path.mkdir(parents=True)
 
     ##    print(f"Logs Path: {str(logs_path)!r}\n")
 
@@ -637,27 +638,28 @@ def run() -> None:
 
     args = parser.parse_args()
 
+    main_config = Path(MAIN_CONFIG)
     if args.create_default_config:
         print(
             f"Creating/overwriting configuration file located at {str(MAIN_CONFIG)!r} with default...",
         )
-        if not path.exists(CONFIG_PATH):
-            makedirs(CONFIG_PATH)
+        config_path = Path(CONFIG_PATH)
+        if not config_path.exists():
+            config_path.mkdir(parents=True)
 
-        with open(MAIN_CONFIG, "w", encoding="utf-8") as fp:
-            fp.write(DEFAULT_CONFIG_TOML)
+        main_config.write_text(DEFAULT_CONFIG_TOML, encoding="utf-8")
 
         print("Action complete.")
         return
 
-    if path.exists(MAIN_CONFIG):
+    if main_config.exists():
         print(f"Reading configuration file {str(MAIN_CONFIG)!r}...\n")
 
-        with open(MAIN_CONFIG, "rb") as fp:
+        with main_config.open("rb") as fp:
             config = tomllib.load(fp)
     else:
         print(
-            f"Configuration file {str(MAIN_CONFIG)!r} not found, loading default.",
+            f"Configuration file {str(main_config)!r} not found, loading default.",
         )
         config = tomllib.loads(DEFAULT_CONFIG_TOML)
 
